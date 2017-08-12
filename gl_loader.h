@@ -9,8 +9,9 @@ GL_LOADER_NO_GL_DOT_H - Don't include the gl header.
 GL_LOADER_NO_WGLEXT - Don't include the Windows specific OpenGL registry header.
 GL_LOADER_NO_GLEXT - Don't include the normal OpenGL registry header.
 GL_LOADER_STATIC - Make the gl loader functions only visible within the same translation unit that they are contained in.
-GL_LOADER_GL_VERSION_X_Y - Specify the OpenGL version to be x.y. OpenGL versions 1.0 through 4.6 are supported.
+GL_LOADER_GL_VERSION_X_Y - Specify the OpenGL version to be x.y.
 GL_LOADER_LOAD_WGL_EXT_FUNCTIONS - Load Windows OpenGL extension functions.
+GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE - Make the OpenGL load function return 0 when a wgl function fails to load. Note that it is almost guaranteed that one of the wgl functions will fail to load.
 
 Examples:
 */
@@ -21,7 +22,7 @@ Examples:
 #include "gl_loader.h"
 
 int main(int argc, char **argv) {
-  int success = gl_loader_initialize_opengl_functions();
+  int success = gl_loader_load_opengl_functions();
   return success ? 0 : -1;
 }
 #endif
@@ -37,7 +38,7 @@ void error_callback(char *api_name, char *function_name, int major_version_numbe
   printf("The function %s failed to load. (It's from OpenGL version %i.%i)\n", function_name, major_version_number, minor_version_number);
 }
 int main(int argc, char **argv) {
-  int success = gl_loader_initialize_opengl_functions_with_error_callback(error_callback);
+  int success = gl_loader_load_opengl_functions_with_error_callback(error_callback);
   return success ? 0 : -1;
 }
 #endif
@@ -63,10 +64,10 @@ extern "C" {
 #endif
 
 //Load all of the OpenGL functions without an error callback:
-GL_LOADER_DEF int gl_loader_initialize_opengl_functions();
+GL_LOADER_DEF int gl_loader_load_opengl_functions();
 
 //Load the functions with an error callback. The callback parameter is asking for a function that has parameters for the api name (gl or wgl), the function name, and the major and minor version numbers of the OpenGL version that the function belongs to respectively:
-GL_LOADER_DEF int gl_loader_initialize_opengl_functions_with_error_callback(void (*error_callback)(char *, char *, int, int));
+GL_LOADER_DEF int gl_loader_load_opengl_functions_with_error_callback(void (*error_callback)(char *, char *, int, int));
 
 #ifdef __cplusplus
 }
@@ -13490,9 +13491,7 @@ extern "C" {
 #ifdef GL_LOADER_GL_VERSION_1_3
 #define GL_LOADER_GL_VERSION_1_2
 #endif
-
 #ifdef GL_LOADER_IMPLEMENTATION
-
 #ifdef GL_LOADER_GL_VERSION_1_2
 PFNGLDRAWRANGEELEMENTSPROC glDrawRangeElements = 0;
 PFNGLTEXIMAGE3DPROC glTexImage3D = 0;
@@ -14364,13 +14363,13 @@ PFNWGLWAITFORSBCOMLPROC wglWaitForSbcOML = 0;
 
 static void __gl_loader_opengl_error_callback_stub_function(char *api, char *function_name, int major_version_number, int minor_version_number) {}
 
-GL_LOADER_DEF int gl_loader_initialize_opengl_functions() {
-  return gl_loader_initialize_opengl_functions_with_error_callback(__gl_loader_opengl_error_callback_stub_function);
+GL_LOADER_DEF int gl_loader_load_opengl_functions() {
+  return gl_loader_load_opengl_functions_with_error_callback(__gl_loader_opengl_error_callback_stub_function);
 }
 
-GL_LOADER_DEF int gl_loader_initialize_opengl_functions_with_error_callback(void (*error_callback)(char *, char *, int, int)) {
+GL_LOADER_DEF int gl_loader_load_opengl_functions_with_error_callback(void (*error_callback)(char *, char *, int, int)) {
   int gl_loader_succeeded = 1;
-#ifdef GL_LOADER_GL_VERSION_1_2
+  #ifdef GL_LOADER_GL_VERSION_1_2
   glDrawRangeElements = (PFNGLDRAWRANGEELEMENTSPROC)wglGetProcAddress("glDrawRangeElements");
   if (glDrawRangeElements == 0) {
     error_callback("gl", "glDrawRangeElements", 1, 2);
@@ -17965,600 +17964,838 @@ GL_LOADER_DEF int gl_loader_initialize_opengl_functions_with_error_callback(void
   }
 #endif
 #ifdef GL_LOADER_LOAD_WGL_EXT_FUNCTIONS
-  wglSetStereoEmitterState3DL = (PFNWGLSETSTEREOEMITTERSTATE3DLPROC)wglGetProcAddress("wglSetStereoEmitterState3DL");
+    wglSetStereoEmitterState3DL = (PFNWGLSETSTEREOEMITTERSTATE3DLPROC)wglGetProcAddress("wglSetStereoEmitterState3DL");
   if (wglSetStereoEmitterState3DL == 0) {
     error_callback("wgl", "wglSetStereoEmitterState3DL", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGPUIDsAMD = (PFNWGLGETGPUIDSAMDPROC)wglGetProcAddress("wglGetGPUIDsAMD");
   if (wglGetGPUIDsAMD == 0) {
     error_callback("wgl", "wglGetGPUIDsAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGPUInfoAMD = (PFNWGLGETGPUINFOAMDPROC)wglGetProcAddress("wglGetGPUInfoAMD");
   if (wglGetGPUInfoAMD == 0) {
     error_callback("wgl", "wglGetGPUInfoAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetContextGPUIDAMD = (PFNWGLGETCONTEXTGPUIDAMDPROC)wglGetProcAddress("wglGetContextGPUIDAMD");
   if (wglGetContextGPUIDAMD == 0) {
     error_callback("wgl", "wglGetContextGPUIDAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateAssociatedContextAMD = (PFNWGLCREATEASSOCIATEDCONTEXTAMDPROC)wglGetProcAddress("wglCreateAssociatedContextAMD");
   if (wglCreateAssociatedContextAMD == 0) {
     error_callback("wgl", "wglCreateAssociatedContextAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateAssociatedContextAttribsAMD = (PFNWGLCREATEASSOCIATEDCONTEXTATTRIBSAMDPROC)wglGetProcAddress("wglCreateAssociatedContextAttribsAMD");
   if (wglCreateAssociatedContextAttribsAMD == 0) {
     error_callback("wgl", "wglCreateAssociatedContextAttribsAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDeleteAssociatedContextAMD = (PFNWGLDELETEASSOCIATEDCONTEXTAMDPROC)wglGetProcAddress("wglDeleteAssociatedContextAMD");
   if (wglDeleteAssociatedContextAMD == 0) {
     error_callback("wgl", "wglDeleteAssociatedContextAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglMakeAssociatedContextCurrentAMD = (PFNWGLMAKEASSOCIATEDCONTEXTCURRENTAMDPROC)wglGetProcAddress("wglMakeAssociatedContextCurrentAMD");
   if (wglMakeAssociatedContextCurrentAMD == 0) {
     error_callback("wgl", "wglMakeAssociatedContextCurrentAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetCurrentAssociatedContextAMD = (PFNWGLGETCURRENTASSOCIATEDCONTEXTAMDPROC)wglGetProcAddress("wglGetCurrentAssociatedContextAMD");
   if (wglGetCurrentAssociatedContextAMD == 0) {
     error_callback("wgl", "wglGetCurrentAssociatedContextAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBlitContextFramebufferAMD = (PFNWGLBLITCONTEXTFRAMEBUFFERAMDPROC)wglGetProcAddress("wglBlitContextFramebufferAMD");
   if (wglBlitContextFramebufferAMD == 0) {
     error_callback("wgl", "wglBlitContextFramebufferAMD", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateBufferRegionARB = (PFNWGLCREATEBUFFERREGIONARBPROC)wglGetProcAddress("wglCreateBufferRegionARB");
   if (wglCreateBufferRegionARB == 0) {
     error_callback("wgl", "wglCreateBufferRegionARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDeleteBufferRegionARB = (PFNWGLDELETEBUFFERREGIONARBPROC)wglGetProcAddress("wglDeleteBufferRegionARB");
   if (wglDeleteBufferRegionARB == 0) {
     error_callback("wgl", "wglDeleteBufferRegionARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSaveBufferRegionARB = (PFNWGLSAVEBUFFERREGIONARBPROC)wglGetProcAddress("wglSaveBufferRegionARB");
   if (wglSaveBufferRegionARB == 0) {
     error_callback("wgl", "wglSaveBufferRegionARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglRestoreBufferRegionARB = (PFNWGLRESTOREBUFFERREGIONARBPROC)wglGetProcAddress("wglRestoreBufferRegionARB");
   if (wglRestoreBufferRegionARB == 0) {
     error_callback("wgl", "wglRestoreBufferRegionARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
   if (wglCreateContextAttribsARB == 0) {
     error_callback("wgl", "wglCreateContextAttribsARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetExtensionsStringARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)wglGetProcAddress("wglGetExtensionsStringARB");
   if (wglGetExtensionsStringARB == 0) {
     error_callback("wgl", "wglGetExtensionsStringARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglMakeContextCurrentARB = (PFNWGLMAKECONTEXTCURRENTARBPROC)wglGetProcAddress("wglMakeContextCurrentARB");
   if (wglMakeContextCurrentARB == 0) {
     error_callback("wgl", "wglMakeContextCurrentARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetCurrentReadDCARB = (PFNWGLGETCURRENTREADDCARBPROC)wglGetProcAddress("wglGetCurrentReadDCARB");
   if (wglGetCurrentReadDCARB == 0) {
     error_callback("wgl", "wglGetCurrentReadDCARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreatePbufferARB = (PFNWGLCREATEPBUFFERARBPROC)wglGetProcAddress("wglCreatePbufferARB");
   if (wglCreatePbufferARB == 0) {
     error_callback("wgl", "wglCreatePbufferARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetPbufferDCARB = (PFNWGLGETPBUFFERDCARBPROC)wglGetProcAddress("wglGetPbufferDCARB");
   if (wglGetPbufferDCARB == 0) {
     error_callback("wgl", "wglGetPbufferDCARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleasePbufferDCARB = (PFNWGLRELEASEPBUFFERDCARBPROC)wglGetProcAddress("wglReleasePbufferDCARB");
   if (wglReleasePbufferDCARB == 0) {
     error_callback("wgl", "wglReleasePbufferDCARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDestroyPbufferARB = (PFNWGLDESTROYPBUFFERARBPROC)wglGetProcAddress("wglDestroyPbufferARB");
   if (wglDestroyPbufferARB == 0) {
     error_callback("wgl", "wglDestroyPbufferARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryPbufferARB = (PFNWGLQUERYPBUFFERARBPROC)wglGetProcAddress("wglQueryPbufferARB");
   if (wglQueryPbufferARB == 0) {
     error_callback("wgl", "wglQueryPbufferARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetPixelFormatAttribivARB = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)wglGetProcAddress("wglGetPixelFormatAttribivARB");
   if (wglGetPixelFormatAttribivARB == 0) {
     error_callback("wgl", "wglGetPixelFormatAttribivARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetPixelFormatAttribfvARB = (PFNWGLGETPIXELFORMATATTRIBFVARBPROC)wglGetProcAddress("wglGetPixelFormatAttribfvARB");
   if (wglGetPixelFormatAttribfvARB == 0) {
     error_callback("wgl", "wglGetPixelFormatAttribfvARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
   if (wglChoosePixelFormatARB == 0) {
     error_callback("wgl", "wglChoosePixelFormatARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBindTexImageARB = (PFNWGLBINDTEXIMAGEARBPROC)wglGetProcAddress("wglBindTexImageARB");
   if (wglBindTexImageARB == 0) {
     error_callback("wgl", "wglBindTexImageARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleaseTexImageARB = (PFNWGLRELEASETEXIMAGEARBPROC)wglGetProcAddress("wglReleaseTexImageARB");
   if (wglReleaseTexImageARB == 0) {
     error_callback("wgl", "wglReleaseTexImageARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSetPbufferAttribARB = (PFNWGLSETPBUFFERATTRIBARBPROC)wglGetProcAddress("wglSetPbufferAttribARB");
   if (wglSetPbufferAttribARB == 0) {
     error_callback("wgl", "wglSetPbufferAttribARB", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateDisplayColorTableEXT = (PFNWGLCREATEDISPLAYCOLORTABLEEXTPROC)wglGetProcAddress("wglCreateDisplayColorTableEXT");
   if (wglCreateDisplayColorTableEXT == 0) {
     error_callback("wgl", "wglCreateDisplayColorTableEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglLoadDisplayColorTableEXT = (PFNWGLLOADDISPLAYCOLORTABLEEXTPROC)wglGetProcAddress("wglLoadDisplayColorTableEXT");
   if (wglLoadDisplayColorTableEXT == 0) {
     error_callback("wgl", "wglLoadDisplayColorTableEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBindDisplayColorTableEXT = (PFNWGLBINDDISPLAYCOLORTABLEEXTPROC)wglGetProcAddress("wglBindDisplayColorTableEXT");
   if (wglBindDisplayColorTableEXT == 0) {
     error_callback("wgl", "wglBindDisplayColorTableEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDestroyDisplayColorTableEXT = (PFNWGLDESTROYDISPLAYCOLORTABLEEXTPROC)wglGetProcAddress("wglDestroyDisplayColorTableEXT");
   if (wglDestroyDisplayColorTableEXT == 0) {
     error_callback("wgl", "wglDestroyDisplayColorTableEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
   if (wglGetExtensionsStringEXT == 0) {
     error_callback("wgl", "wglGetExtensionsStringEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglMakeContextCurrentEXT = (PFNWGLMAKECONTEXTCURRENTEXTPROC)wglGetProcAddress("wglMakeContextCurrentEXT");
   if (wglMakeContextCurrentEXT == 0) {
     error_callback("wgl", "wglMakeContextCurrentEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetCurrentReadDCEXT = (PFNWGLGETCURRENTREADDCEXTPROC)wglGetProcAddress("wglGetCurrentReadDCEXT");
   if (wglGetCurrentReadDCEXT == 0) {
     error_callback("wgl", "wglGetCurrentReadDCEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreatePbufferEXT = (PFNWGLCREATEPBUFFEREXTPROC)wglGetProcAddress("wglCreatePbufferEXT");
   if (wglCreatePbufferEXT == 0) {
     error_callback("wgl", "wglCreatePbufferEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetPbufferDCEXT = (PFNWGLGETPBUFFERDCEXTPROC)wglGetProcAddress("wglGetPbufferDCEXT");
   if (wglGetPbufferDCEXT == 0) {
     error_callback("wgl", "wglGetPbufferDCEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleasePbufferDCEXT = (PFNWGLRELEASEPBUFFERDCEXTPROC)wglGetProcAddress("wglReleasePbufferDCEXT");
   if (wglReleasePbufferDCEXT == 0) {
     error_callback("wgl", "wglReleasePbufferDCEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDestroyPbufferEXT = (PFNWGLDESTROYPBUFFEREXTPROC)wglGetProcAddress("wglDestroyPbufferEXT");
   if (wglDestroyPbufferEXT == 0) {
     error_callback("wgl", "wglDestroyPbufferEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryPbufferEXT = (PFNWGLQUERYPBUFFEREXTPROC)wglGetProcAddress("wglQueryPbufferEXT");
   if (wglQueryPbufferEXT == 0) {
     error_callback("wgl", "wglQueryPbufferEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetPixelFormatAttribivEXT = (PFNWGLGETPIXELFORMATATTRIBIVEXTPROC)wglGetProcAddress("wglGetPixelFormatAttribivEXT");
   if (wglGetPixelFormatAttribivEXT == 0) {
     error_callback("wgl", "wglGetPixelFormatAttribivEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetPixelFormatAttribfvEXT = (PFNWGLGETPIXELFORMATATTRIBFVEXTPROC)wglGetProcAddress("wglGetPixelFormatAttribfvEXT");
   if (wglGetPixelFormatAttribfvEXT == 0) {
     error_callback("wgl", "wglGetPixelFormatAttribfvEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglChoosePixelFormatEXT = (PFNWGLCHOOSEPIXELFORMATEXTPROC)wglGetProcAddress("wglChoosePixelFormatEXT");
   if (wglChoosePixelFormatEXT == 0) {
     error_callback("wgl", "wglChoosePixelFormatEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
   if (wglSwapIntervalEXT == 0) {
     error_callback("wgl", "wglSwapIntervalEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)wglGetProcAddress("wglGetSwapIntervalEXT");
   if (wglGetSwapIntervalEXT == 0) {
     error_callback("wgl", "wglGetSwapIntervalEXT", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetDigitalVideoParametersI3D = (PFNWGLGETDIGITALVIDEOPARAMETERSI3DPROC)wglGetProcAddress("wglGetDigitalVideoParametersI3D");
   if (wglGetDigitalVideoParametersI3D == 0) {
     error_callback("wgl", "wglGetDigitalVideoParametersI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSetDigitalVideoParametersI3D = (PFNWGLSETDIGITALVIDEOPARAMETERSI3DPROC)wglGetProcAddress("wglSetDigitalVideoParametersI3D");
   if (wglSetDigitalVideoParametersI3D == 0) {
     error_callback("wgl", "wglSetDigitalVideoParametersI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGammaTableParametersI3D = (PFNWGLGETGAMMATABLEPARAMETERSI3DPROC)wglGetProcAddress("wglGetGammaTableParametersI3D");
   if (wglGetGammaTableParametersI3D == 0) {
     error_callback("wgl", "wglGetGammaTableParametersI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSetGammaTableParametersI3D = (PFNWGLSETGAMMATABLEPARAMETERSI3DPROC)wglGetProcAddress("wglSetGammaTableParametersI3D");
   if (wglSetGammaTableParametersI3D == 0) {
     error_callback("wgl", "wglSetGammaTableParametersI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGammaTableI3D = (PFNWGLGETGAMMATABLEI3DPROC)wglGetProcAddress("wglGetGammaTableI3D");
   if (wglGetGammaTableI3D == 0) {
     error_callback("wgl", "wglGetGammaTableI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSetGammaTableI3D = (PFNWGLSETGAMMATABLEI3DPROC)wglGetProcAddress("wglSetGammaTableI3D");
   if (wglSetGammaTableI3D == 0) {
     error_callback("wgl", "wglSetGammaTableI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnableGenlockI3D = (PFNWGLENABLEGENLOCKI3DPROC)wglGetProcAddress("wglEnableGenlockI3D");
   if (wglEnableGenlockI3D == 0) {
     error_callback("wgl", "wglEnableGenlockI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDisableGenlockI3D = (PFNWGLDISABLEGENLOCKI3DPROC)wglGetProcAddress("wglDisableGenlockI3D");
   if (wglDisableGenlockI3D == 0) {
     error_callback("wgl", "wglDisableGenlockI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglIsEnabledGenlockI3D = (PFNWGLISENABLEDGENLOCKI3DPROC)wglGetProcAddress("wglIsEnabledGenlockI3D");
   if (wglIsEnabledGenlockI3D == 0) {
     error_callback("wgl", "wglIsEnabledGenlockI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGenlockSourceI3D = (PFNWGLGENLOCKSOURCEI3DPROC)wglGetProcAddress("wglGenlockSourceI3D");
   if (wglGenlockSourceI3D == 0) {
     error_callback("wgl", "wglGenlockSourceI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGenlockSourceI3D = (PFNWGLGETGENLOCKSOURCEI3DPROC)wglGetProcAddress("wglGetGenlockSourceI3D");
   if (wglGetGenlockSourceI3D == 0) {
     error_callback("wgl", "wglGetGenlockSourceI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGenlockSourceEdgeI3D = (PFNWGLGENLOCKSOURCEEDGEI3DPROC)wglGetProcAddress("wglGenlockSourceEdgeI3D");
   if (wglGenlockSourceEdgeI3D == 0) {
     error_callback("wgl", "wglGenlockSourceEdgeI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGenlockSourceEdgeI3D = (PFNWGLGETGENLOCKSOURCEEDGEI3DPROC)wglGetProcAddress("wglGetGenlockSourceEdgeI3D");
   if (wglGetGenlockSourceEdgeI3D == 0) {
     error_callback("wgl", "wglGetGenlockSourceEdgeI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGenlockSampleRateI3D = (PFNWGLGENLOCKSAMPLERATEI3DPROC)wglGetProcAddress("wglGenlockSampleRateI3D");
   if (wglGenlockSampleRateI3D == 0) {
     error_callback("wgl", "wglGenlockSampleRateI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGenlockSampleRateI3D = (PFNWGLGETGENLOCKSAMPLERATEI3DPROC)wglGetProcAddress("wglGetGenlockSampleRateI3D");
   if (wglGetGenlockSampleRateI3D == 0) {
     error_callback("wgl", "wglGetGenlockSampleRateI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGenlockSourceDelayI3D = (PFNWGLGENLOCKSOURCEDELAYI3DPROC)wglGetProcAddress("wglGenlockSourceDelayI3D");
   if (wglGenlockSourceDelayI3D == 0) {
     error_callback("wgl", "wglGenlockSourceDelayI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetGenlockSourceDelayI3D = (PFNWGLGETGENLOCKSOURCEDELAYI3DPROC)wglGetProcAddress("wglGetGenlockSourceDelayI3D");
   if (wglGetGenlockSourceDelayI3D == 0) {
     error_callback("wgl", "wglGetGenlockSourceDelayI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryGenlockMaxSourceDelayI3D = (PFNWGLQUERYGENLOCKMAXSOURCEDELAYI3DPROC)wglGetProcAddress("wglQueryGenlockMaxSourceDelayI3D");
   if (wglQueryGenlockMaxSourceDelayI3D == 0) {
     error_callback("wgl", "wglQueryGenlockMaxSourceDelayI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateImageBufferI3D = (PFNWGLCREATEIMAGEBUFFERI3DPROC)wglGetProcAddress("wglCreateImageBufferI3D");
   if (wglCreateImageBufferI3D == 0) {
     error_callback("wgl", "wglCreateImageBufferI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDestroyImageBufferI3D = (PFNWGLDESTROYIMAGEBUFFERI3DPROC)wglGetProcAddress("wglDestroyImageBufferI3D");
   if (wglDestroyImageBufferI3D == 0) {
     error_callback("wgl", "wglDestroyImageBufferI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglAssociateImageBufferEventsI3D = (PFNWGLASSOCIATEIMAGEBUFFEREVENTSI3DPROC)wglGetProcAddress("wglAssociateImageBufferEventsI3D");
   if (wglAssociateImageBufferEventsI3D == 0) {
     error_callback("wgl", "wglAssociateImageBufferEventsI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleaseImageBufferEventsI3D = (PFNWGLRELEASEIMAGEBUFFEREVENTSI3DPROC)wglGetProcAddress("wglReleaseImageBufferEventsI3D");
   if (wglReleaseImageBufferEventsI3D == 0) {
     error_callback("wgl", "wglReleaseImageBufferEventsI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnableFrameLockI3D = (PFNWGLENABLEFRAMELOCKI3DPROC)wglGetProcAddress("wglEnableFrameLockI3D");
   if (wglEnableFrameLockI3D == 0) {
     error_callback("wgl", "wglEnableFrameLockI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDisableFrameLockI3D = (PFNWGLDISABLEFRAMELOCKI3DPROC)wglGetProcAddress("wglDisableFrameLockI3D");
   if (wglDisableFrameLockI3D == 0) {
     error_callback("wgl", "wglDisableFrameLockI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglIsEnabledFrameLockI3D = (PFNWGLISENABLEDFRAMELOCKI3DPROC)wglGetProcAddress("wglIsEnabledFrameLockI3D");
   if (wglIsEnabledFrameLockI3D == 0) {
     error_callback("wgl", "wglIsEnabledFrameLockI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryFrameLockMasterI3D = (PFNWGLQUERYFRAMELOCKMASTERI3DPROC)wglGetProcAddress("wglQueryFrameLockMasterI3D");
   if (wglQueryFrameLockMasterI3D == 0) {
     error_callback("wgl", "wglQueryFrameLockMasterI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetFrameUsageI3D = (PFNWGLGETFRAMEUSAGEI3DPROC)wglGetProcAddress("wglGetFrameUsageI3D");
   if (wglGetFrameUsageI3D == 0) {
     error_callback("wgl", "wglGetFrameUsageI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBeginFrameTrackingI3D = (PFNWGLBEGINFRAMETRACKINGI3DPROC)wglGetProcAddress("wglBeginFrameTrackingI3D");
   if (wglBeginFrameTrackingI3D == 0) {
     error_callback("wgl", "wglBeginFrameTrackingI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEndFrameTrackingI3D = (PFNWGLENDFRAMETRACKINGI3DPROC)wglGetProcAddress("wglEndFrameTrackingI3D");
   if (wglEndFrameTrackingI3D == 0) {
     error_callback("wgl", "wglEndFrameTrackingI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryFrameTrackingI3D = (PFNWGLQUERYFRAMETRACKINGI3DPROC)wglGetProcAddress("wglQueryFrameTrackingI3D");
   if (wglQueryFrameTrackingI3D == 0) {
     error_callback("wgl", "wglQueryFrameTrackingI3D", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCopyImageSubDataNV = (PFNWGLCOPYIMAGESUBDATANVPROC)wglGetProcAddress("wglCopyImageSubDataNV");
   if (wglCopyImageSubDataNV == 0) {
     error_callback("wgl", "wglCopyImageSubDataNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDelayBeforeSwapNV = (PFNWGLDELAYBEFORESWAPNVPROC)wglGetProcAddress("wglDelayBeforeSwapNV");
   if (wglDelayBeforeSwapNV == 0) {
     error_callback("wgl", "wglDelayBeforeSwapNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXSetResourceShareHandleNV = (PFNWGLDXSETRESOURCESHAREHANDLENVPROC)wglGetProcAddress("wglDXSetResourceShareHandleNV");
   if (wglDXSetResourceShareHandleNV == 0) {
     error_callback("wgl", "wglDXSetResourceShareHandleNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXOpenDeviceNV = (PFNWGLDXOPENDEVICENVPROC)wglGetProcAddress("wglDXOpenDeviceNV");
   if (wglDXOpenDeviceNV == 0) {
     error_callback("wgl", "wglDXOpenDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXCloseDeviceNV = (PFNWGLDXCLOSEDEVICENVPROC)wglGetProcAddress("wglDXCloseDeviceNV");
   if (wglDXCloseDeviceNV == 0) {
     error_callback("wgl", "wglDXCloseDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXRegisterObjectNV = (PFNWGLDXREGISTEROBJECTNVPROC)wglGetProcAddress("wglDXRegisterObjectNV");
   if (wglDXRegisterObjectNV == 0) {
     error_callback("wgl", "wglDXRegisterObjectNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXUnregisterObjectNV = (PFNWGLDXUNREGISTEROBJECTNVPROC)wglGetProcAddress("wglDXUnregisterObjectNV");
   if (wglDXUnregisterObjectNV == 0) {
     error_callback("wgl", "wglDXUnregisterObjectNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXObjectAccessNV = (PFNWGLDXOBJECTACCESSNVPROC)wglGetProcAddress("wglDXObjectAccessNV");
   if (wglDXObjectAccessNV == 0) {
     error_callback("wgl", "wglDXObjectAccessNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXLockObjectsNV = (PFNWGLDXLOCKOBJECTSNVPROC)wglGetProcAddress("wglDXLockObjectsNV");
   if (wglDXLockObjectsNV == 0) {
     error_callback("wgl", "wglDXLockObjectsNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDXUnlockObjectsNV = (PFNWGLDXUNLOCKOBJECTSNVPROC)wglGetProcAddress("wglDXUnlockObjectsNV");
   if (wglDXUnlockObjectsNV == 0) {
     error_callback("wgl", "wglDXUnlockObjectsNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnumGpusNV = (PFNWGLENUMGPUSNVPROC)wglGetProcAddress("wglEnumGpusNV");
   if (wglEnumGpusNV == 0) {
     error_callback("wgl", "wglEnumGpusNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnumGpuDevicesNV = (PFNWGLENUMGPUDEVICESNVPROC)wglGetProcAddress("wglEnumGpuDevicesNV");
   if (wglEnumGpuDevicesNV == 0) {
     error_callback("wgl", "wglEnumGpuDevicesNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglCreateAffinityDCNV = (PFNWGLCREATEAFFINITYDCNVPROC)wglGetProcAddress("wglCreateAffinityDCNV");
   if (wglCreateAffinityDCNV == 0) {
     error_callback("wgl", "wglCreateAffinityDCNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnumGpusFromAffinityDCNV = (PFNWGLENUMGPUSFROMAFFINITYDCNVPROC)wglGetProcAddress("wglEnumGpusFromAffinityDCNV");
   if (wglEnumGpusFromAffinityDCNV == 0) {
     error_callback("wgl", "wglEnumGpusFromAffinityDCNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglDeleteDCNV = (PFNWGLDELETEDCNVPROC)wglGetProcAddress("wglDeleteDCNV");
   if (wglDeleteDCNV == 0) {
     error_callback("wgl", "wglDeleteDCNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnumerateVideoDevicesNV = (PFNWGLENUMERATEVIDEODEVICESNVPROC)wglGetProcAddress("wglEnumerateVideoDevicesNV");
   if (wglEnumerateVideoDevicesNV == 0) {
     error_callback("wgl", "wglEnumerateVideoDevicesNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBindVideoDeviceNV = (PFNWGLBINDVIDEODEVICENVPROC)wglGetProcAddress("wglBindVideoDeviceNV");
   if (wglBindVideoDeviceNV == 0) {
     error_callback("wgl", "wglBindVideoDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryCurrentContextNV = (PFNWGLQUERYCURRENTCONTEXTNVPROC)wglGetProcAddress("wglQueryCurrentContextNV");
   if (wglQueryCurrentContextNV == 0) {
     error_callback("wgl", "wglQueryCurrentContextNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglJoinSwapGroupNV = (PFNWGLJOINSWAPGROUPNVPROC)wglGetProcAddress("wglJoinSwapGroupNV");
   if (wglJoinSwapGroupNV == 0) {
     error_callback("wgl", "wglJoinSwapGroupNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBindSwapBarrierNV = (PFNWGLBINDSWAPBARRIERNVPROC)wglGetProcAddress("wglBindSwapBarrierNV");
   if (wglBindSwapBarrierNV == 0) {
     error_callback("wgl", "wglBindSwapBarrierNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQuerySwapGroupNV = (PFNWGLQUERYSWAPGROUPNVPROC)wglGetProcAddress("wglQuerySwapGroupNV");
   if (wglQuerySwapGroupNV == 0) {
     error_callback("wgl", "wglQuerySwapGroupNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryMaxSwapGroupsNV = (PFNWGLQUERYMAXSWAPGROUPSNVPROC)wglGetProcAddress("wglQueryMaxSwapGroupsNV");
   if (wglQueryMaxSwapGroupsNV == 0) {
     error_callback("wgl", "wglQueryMaxSwapGroupsNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryFrameCountNV = (PFNWGLQUERYFRAMECOUNTNVPROC)wglGetProcAddress("wglQueryFrameCountNV");
   if (wglQueryFrameCountNV == 0) {
     error_callback("wgl", "wglQueryFrameCountNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglResetFrameCountNV = (PFNWGLRESETFRAMECOUNTNVPROC)wglGetProcAddress("wglResetFrameCountNV");
   if (wglResetFrameCountNV == 0) {
     error_callback("wgl", "wglResetFrameCountNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBindVideoCaptureDeviceNV = (PFNWGLBINDVIDEOCAPTUREDEVICENVPROC)wglGetProcAddress("wglBindVideoCaptureDeviceNV");
   if (wglBindVideoCaptureDeviceNV == 0) {
     error_callback("wgl", "wglBindVideoCaptureDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglEnumerateVideoCaptureDevicesNV = (PFNWGLENUMERATEVIDEOCAPTUREDEVICESNVPROC)wglGetProcAddress("wglEnumerateVideoCaptureDevicesNV");
   if (wglEnumerateVideoCaptureDevicesNV == 0) {
     error_callback("wgl", "wglEnumerateVideoCaptureDevicesNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglLockVideoCaptureDeviceNV = (PFNWGLLOCKVIDEOCAPTUREDEVICENVPROC)wglGetProcAddress("wglLockVideoCaptureDeviceNV");
   if (wglLockVideoCaptureDeviceNV == 0) {
     error_callback("wgl", "wglLockVideoCaptureDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglQueryVideoCaptureDeviceNV = (PFNWGLQUERYVIDEOCAPTUREDEVICENVPROC)wglGetProcAddress("wglQueryVideoCaptureDeviceNV");
   if (wglQueryVideoCaptureDeviceNV == 0) {
     error_callback("wgl", "wglQueryVideoCaptureDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleaseVideoCaptureDeviceNV = (PFNWGLRELEASEVIDEOCAPTUREDEVICENVPROC)wglGetProcAddress("wglReleaseVideoCaptureDeviceNV");
   if (wglReleaseVideoCaptureDeviceNV == 0) {
     error_callback("wgl", "wglReleaseVideoCaptureDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetVideoDeviceNV = (PFNWGLGETVIDEODEVICENVPROC)wglGetProcAddress("wglGetVideoDeviceNV");
   if (wglGetVideoDeviceNV == 0) {
     error_callback("wgl", "wglGetVideoDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleaseVideoDeviceNV = (PFNWGLRELEASEVIDEODEVICENVPROC)wglGetProcAddress("wglReleaseVideoDeviceNV");
   if (wglReleaseVideoDeviceNV == 0) {
     error_callback("wgl", "wglReleaseVideoDeviceNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglBindVideoImageNV = (PFNWGLBINDVIDEOIMAGENVPROC)wglGetProcAddress("wglBindVideoImageNV");
   if (wglBindVideoImageNV == 0) {
     error_callback("wgl", "wglBindVideoImageNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglReleaseVideoImageNV = (PFNWGLRELEASEVIDEOIMAGENVPROC)wglGetProcAddress("wglReleaseVideoImageNV");
   if (wglReleaseVideoImageNV == 0) {
     error_callback("wgl", "wglReleaseVideoImageNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSendPbufferToVideoNV = (PFNWGLSENDPBUFFERTOVIDEONVPROC)wglGetProcAddress("wglSendPbufferToVideoNV");
   if (wglSendPbufferToVideoNV == 0) {
     error_callback("wgl", "wglSendPbufferToVideoNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetVideoInfoNV = (PFNWGLGETVIDEOINFONVPROC)wglGetProcAddress("wglGetVideoInfoNV");
   if (wglGetVideoInfoNV == 0) {
     error_callback("wgl", "wglGetVideoInfoNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglAllocateMemoryNV = (PFNWGLALLOCATEMEMORYNVPROC)wglGetProcAddress("wglAllocateMemoryNV");
   if (wglAllocateMemoryNV == 0) {
     error_callback("wgl", "wglAllocateMemoryNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglFreeMemoryNV = (PFNWGLFREEMEMORYNVPROC)wglGetProcAddress("wglFreeMemoryNV");
   if (wglFreeMemoryNV == 0) {
     error_callback("wgl", "wglFreeMemoryNV", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetSyncValuesOML = (PFNWGLGETSYNCVALUESOMLPROC)wglGetProcAddress("wglGetSyncValuesOML");
   if (wglGetSyncValuesOML == 0) {
     error_callback("wgl", "wglGetSyncValuesOML", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglGetMscRateOML = (PFNWGLGETMSCRATEOMLPROC)wglGetProcAddress("wglGetMscRateOML");
   if (wglGetMscRateOML == 0) {
     error_callback("wgl", "wglGetMscRateOML", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSwapBuffersMscOML = (PFNWGLSWAPBUFFERSMSCOMLPROC)wglGetProcAddress("wglSwapBuffersMscOML");
   if (wglSwapBuffersMscOML == 0) {
     error_callback("wgl", "wglSwapBuffersMscOML", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglSwapLayerBuffersMscOML = (PFNWGLSWAPLAYERBUFFERSMSCOMLPROC)wglGetProcAddress("wglSwapLayerBuffersMscOML");
   if (wglSwapLayerBuffersMscOML == 0) {
     error_callback("wgl", "wglSwapLayerBuffersMscOML", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglWaitForMscOML = (PFNWGLWAITFORMSCOMLPROC)wglGetProcAddress("wglWaitForMscOML");
   if (wglWaitForMscOML == 0) {
     error_callback("wgl", "wglWaitForMscOML", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
   wglWaitForSbcOML = (PFNWGLWAITFORSBCOMLPROC)wglGetProcAddress("wglWaitForSbcOML");
   if (wglWaitForSbcOML == 0) {
     error_callback("wgl", "wglWaitForSbcOML", 1, 0);
+#ifdef GL_LOADER_FAIL_ON_WGL_FUNCTION_FAILURE
     gl_loader_succeeded = 0;
+#endif
   }
 #endif
   return gl_loader_succeeded;
